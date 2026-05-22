@@ -1,0 +1,612 @@
+
+<style>
+:root { --mono: 'Courier New', monospace; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+
+.sheet { padding: 1rem 0 2rem; }
+
+.top-bar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-lg);
+  border: 0.5px solid var(--color-border-tertiary);
+}
+.k8s-badge {
+  background: #326CE5; color: #fff; font-size: 11px; font-weight: 500;
+  padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px;
+}
+.search-wrap { flex: 1; }
+.search-wrap input {
+  width: 100%; font-size: 13px;
+}
+.filter-row {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.25rem;
+}
+.tag {
+  font-size: 11px; padding: 4px 10px; border-radius: 20px; cursor: pointer;
+  border: 0.5px solid var(--color-border-secondary);
+  background: var(--color-background-primary);
+  color: var(--color-text-secondary);
+  transition: all 0.15s;
+  user-select: none;
+}
+.tag.active { background: #326CE5; color: #fff; border-color: #326CE5; }
+.tag:hover:not(.active) { background: var(--color-background-secondary); }
+
+.section { margin-bottom: 1.5rem; }
+.sec-title {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-text-tertiary); margin-bottom: 0.6rem; padding-left: 2px;
+}
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--color-border-secondary); }
+.card-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px 8px;
+  cursor: pointer; user-select: none;
+}
+.card-icon { font-size: 15px; }
+.card-label { font-size: 13px; font-weight: 500; flex: 1; color: var(--color-text-primary); }
+.card-cat { font-size: 10px; padding: 2px 7px; border-radius: 10px; }
+.chevron { font-size: 12px; color: var(--color-text-tertiary); transition: transform 0.2s; }
+.card.open .chevron { transform: rotate(180deg); }
+.card-body { display: none; padding: 0 12px 12px; }
+.card.open .card-body { display: block; }
+
+.note {
+  font-size: 12px; color: var(--color-text-secondary);
+  line-height: 1.55; margin-bottom: 8px;
+  padding: 6px 8px;
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-md);
+  border-left: 2px solid var(--color-border-secondary);
+}
+.note b { color: var(--color-text-primary); font-weight: 500; }
+.note.warn { border-left-color: #E8A010; }
+.note.tip { border-left-color: #326CE5; }
+.note.danger { border-left-color: #C53030; }
+.note.good { border-left-color: #2F855A; }
+
+.cmd-block { margin-bottom: 6px; }
+.cmd-label { font-size: 10px; color: var(--color-text-tertiary); margin-bottom: 3px; font-weight: 500; letter-spacing: 0.04em; }
+pre {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  background: var(--color-background-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 7px 10px;
+  overflow-x: auto;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  white-space: pre;
+}
+.kw { color: #326CE5; font-weight: 500; }
+.str { color: #2F855A; }
+.cmt { color: var(--color-text-tertiary); font-style: italic; }
+.divider { height: 0.5px; background: var(--color-border-tertiary); margin: 8px 0; }
+.edge-badge {
+  display: inline-block; font-size: 10px; font-weight: 500;
+  background: #FFF3CD; color: #856404;
+  border: 0.5px solid #F0C040; border-radius: 10px;
+  padding: 1px 7px; margin-left: 4px;
+}
+</style>
+
+<div class="sheet">
+  <h2 class="sr-only">Kubernetes exam and interview cheatsheet with commands, notes, and edge cases</h2>
+
+  <div class="top-bar">
+    <span class="k8s-badge">K8s</span>
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="Search topics, commands…" />
+    </div>
+  </div>
+
+  <div class="filter-row" id="filters"></div>
+
+  <div id="sections"></div>
+</div>
+
+<script>
+const DATA = [
+  {
+    cat: "Cluster",
+    color: "#326CE5",
+    items: [
+      {
+        id: "kind",
+        label: "kind cluster",
+        icon: "ti-server",
+        notes: [
+          { type: "tip", html: "<b>kind</b> = Kubernetes IN Docker. Each node is a container. Great for local multi-node clusters." },
+          { type: "warn", html: "<b>Edge:</b> kind clusters don't persist across Docker restarts unless volumes are configured." }
+        ],
+        cmds: [
+          { label: "create cluster", code: `kind create cluster --name dev\nkind create cluster --config kind-config.yaml` },
+          { label: "multi-node config (kind-config.yaml)", code: `kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnodes:\n  - role: control-plane\n  - role: worker\n  - role: worker` },
+          { label: "common", code: `kind get clusters\nkind delete cluster --name dev\nkind load docker-image myapp:v1 --name dev` }
+        ]
+      },
+      {
+        id: "context",
+        label: "contexts & config",
+        icon: "ti-settings",
+        notes: [
+          { type: "tip", html: "<b>kubeconfig</b> lives at ~/.kube/config by default. KUBECONFIG env var overrides it." },
+          { type: "warn", html: "<b>Edge:</b> <b>--context</b> flag overrides current context for one command only." }
+        ],
+        cmds: [
+          { label: "context management", code: `kubectl config get-contexts\nkubectl config use-context kind-dev\nkubectl config current-context\nkubectl config set-context --current --namespace=mynamespace` }
+        ]
+      }
+    ]
+  },
+  {
+    cat: "Namespaces",
+    color: "#6B46C1",
+    items: [
+      {
+        id: "ns",
+        label: "namespace",
+        icon: "ti-layout-sidebar",
+        notes: [
+          { type: "note", html: "Namespaces provide soft multi-tenancy. <b>kube-system</b>, <b>kube-public</b>, <b>default</b>, <b>kube-node-lease</b> are auto-created." },
+          { type: "warn", html: "<b>Edge:</b> Not all resources are namespaced — Nodes, PVs, StorageClass, ClusterRoles are cluster-scoped." },
+          { type: "tip", html: "Set a default namespace with <b>kubectl config set-context</b> so you don't have to type -n every time." }
+        ],
+        cmds: [
+          { label: "manage namespaces", code: `kubectl get namespaces\nkubectl create namespace prod\nkubectl delete namespace prod\nkubectl get all -n kube-system\nkubectl api-resources --namespaced=true   # see namespaced resources\nkubectl api-resources --namespaced=false  # cluster-scoped resources` }
+        ]
+      }
+    ]
+  },
+  {
+    cat: "Workloads",
+    color: "#2F855A",
+    items: [
+      {
+        id: "pods",
+        label: "pods",
+        icon: "ti-box",
+        notes: [
+          { type: "note", html: "Smallest deployable unit. Shares network namespace and volumes between containers." },
+          { type: "warn", html: "<b>Edge:</b> Pods are <b>ephemeral</b>. IPs change on restart. Never rely on pod IP directly in production." },
+          { type: "warn", html: "<b>Edge:</b> A pod stays in <b>Pending</b> if no node satisfies its resource requests or nodeSelector." },
+          { type: "tip", html: "<b>Static pods</b>: placed in /etc/kubernetes/manifests/ — kubelet manages them directly, no scheduler involved." }
+        ],
+        cmds: [
+          { label: "lifecycle", code: `kubectl run nginx --image=nginx --restart=Never\nkubectl get pods -o wide          # shows node + IP\nkubectl describe pod nginx\nkubectl logs nginx -c mycontainer  # -c for multi-container\nkubectl logs nginx --previous       # crashed container logs\nkubectl exec -it nginx -- bash\nkubectl delete pod nginx --grace-period=0 --force  # immediate kill` },
+          { label: "debug", code: `kubectl get pod nginx -o yaml\nkubectl get events --sort-by='.lastTimestamp'\nkubectl top pod nginx               # needs metrics-server` }
+        ]
+      },
+      {
+        id: "deployment",
+        label: "deployment",
+        icon: "ti-versions",
+        notes: [
+          { type: "note", html: "Manages ReplicaSets. Handles rolling updates and rollbacks. Default strategy: <b>RollingUpdate</b>." },
+          { type: "warn", html: "<b>Edge:</b> <b>maxSurge</b> and <b>maxUnavailable</b> default to 25% each. Set to 0/1 for zero-downtime blue-green style." },
+          { type: "warn", html: "<b>Edge:</b> Changing only the number of replicas does NOT create a new ReplicaSet." },
+          { type: "danger", html: "<b>Edge:</b> <b>kubectl apply</b> vs <b>kubectl create</b>: apply is idempotent (3-way merge); create fails if resource exists." }
+        ],
+        cmds: [
+          { label: "create & scale", code: `kubectl create deployment web --image=nginx --replicas=3\nkubectl scale deployment web --replicas=5\nkubectl autoscale deployment web --min=2 --max=10 --cpu-percent=80` },
+          { label: "rolling update & rollback", code: `kubectl set image deployment/web nginx=nginx:1.25\nkubectl rollout status deployment/web\nkubectl rollout history deployment/web\nkubectl rollout undo deployment/web\nkubectl rollout undo deployment/web --to-revision=2\nkubectl rollout pause deployment/web   # pause mid-rollout\nkubectl rollout resume deployment/web` },
+          { label: "strategy yaml", code: `strategy:\n  type: RollingUpdate\n  rollingUpdate:\n    maxSurge: 1\n    maxUnavailable: 0` }
+        ]
+      },
+      {
+        id: "replicaset",
+        label: "replicaset",
+        icon: "ti-copy",
+        notes: [
+          { type: "note", html: "ReplicaSet is what Deployment manages. Rarely used directly — prefer Deployment." },
+          { type: "warn", html: "<b>Edge:</b> If you manually edit a RS that was created by a Deployment, the Deployment will reconcile it back." },
+          { type: "tip", html: "RS uses <b>label selectors</b> to count pods. If you create a pod with matching labels manually, the RS adopts it." }
+        ],
+        cmds: [
+          { label: "inspect", code: `kubectl get rs\nkubectl describe rs <name>\nkubectl get pods -l app=web   # see RS-owned pods via label` }
+        ]
+      },
+      {
+        id: "daemonset",
+        label: "daemonset",
+        icon: "ti-grid-dots",
+        notes: [
+          { type: "note", html: "Ensures one pod per node (or per matching node). Used for log collectors, monitoring agents, CNI plugins." },
+          { type: "warn", html: "<b>Edge:</b> DaemonSets bypass scheduler for node assignment but still respect Taints/Tolerations." },
+          { type: "warn", html: "<b>Edge:</b> <b>kube-proxy</b> and <b>Calico/Flannel</b> run as DaemonSets in kube-system — don't accidentally delete them." },
+          { type: "tip", html: "Use <b>nodeSelector</b> or <b>nodeAffinity</b> to target only specific nodes." }
+        ],
+        cmds: [
+          { label: "manage", code: `kubectl get daemonset -n kube-system\nkubectl describe daemonset calico-node -n kube-system\nkubectl rollout restart daemonset/fluentd -n logging` }
+        ]
+      },
+      {
+        id: "jobs",
+        label: "job & cronjob",
+        icon: "ti-clock-play",
+        notes: [
+          { type: "note", html: "<b>Job</b>: run-to-completion task. <b>CronJob</b>: scheduled Job. Pods are NOT deleted after completion by default." },
+          { type: "warn", html: "<b>Edge:</b> <b>ttlSecondsAfterFinished</b> cleans up finished Jobs automatically (requires TTL controller)." },
+          { type: "warn", html: "<b>Edge:</b> CronJob does NOT guarantee exactly-once execution. Use <b>concurrencyPolicy: Forbid</b> to prevent overlap." }
+        ],
+        cmds: [
+          { label: "jobs", code: `kubectl create job pi --image=perl -- perl -Mbignum=bpi -wle 'print bpi(2000)'\nkubectl get jobs\nkubectl logs job/pi` },
+          { label: "cronjob", code: `kubectl create cronjob hello --image=busybox \\\n  --schedule="*/1 * * * *" -- echo hello\nkubectl get cronjob` }
+        ]
+      },
+      {
+        id: "statefulset",
+        label: "statefulset",
+        icon: "ti-database",
+        notes: [
+          { type: "note", html: "Like Deployment but pods have <b>stable identity</b>: predictable names (web-0, web-1), stable DNS, ordered rolling update." },
+          { type: "warn", html: "<b>Edge:</b> StatefulSet uses a <b>Headless Service</b> (clusterIP: None) for DNS. Each pod gets: <b>pod-name.svc.namespace.svc.cluster.local</b>" },
+          { type: "warn", html: "<b>Edge:</b> Deleting a StatefulSet does NOT delete its PVCs by default — data persists." }
+        ],
+        cmds: [
+          { label: "inspect", code: `kubectl get statefulsets\nkubectl get pods -l app=mysql --sort-by='.metadata.name'` }
+        ]
+      }
+    ]
+  },
+  {
+    cat: "Scaling",
+    color: "#C05621",
+    items: [
+      {
+        id: "hpa",
+        label: "HPA (horizontal pod autoscaler)",
+        icon: "ti-arrows-horizontal",
+        notes: [
+          { type: "note", html: "Scales pod <b>count</b> based on CPU/memory/custom metrics. Requires <b>metrics-server</b>." },
+          { type: "warn", html: "<b>Edge:</b> HPA checks every <b>15s</b> by default. Scale-up is fast; scale-down has a 5-minute stabilization window to prevent flapping." },
+          { type: "warn", html: "<b>Edge:</b> HPA conflicts with manual <b>kubectl scale</b> — HPA will override your manual replica count." },
+          { type: "tip", html: "Set <b>resource requests</b> on pods — HPA uses them as the denominator for utilization %. Without requests, HPA can't calculate anything." }
+        ],
+        cmds: [
+          { label: "create & inspect", code: `kubectl autoscale deployment web --cpu-percent=50 --min=1 --max=10\nkubectl get hpa\nkubectl describe hpa web` },
+          { label: "HPA v2 yaml (custom metric)", code: `apiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nspec:\n  scaleTargetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: web\n  minReplicas: 2\n  maxReplicas: 20\n  metrics:\n  - type: Resource\n    resource:\n      name: cpu\n      target:\n        type: Utilization\n        averageUtilization: 50` }
+        ]
+      },
+      {
+        id: "vpa",
+        label: "VPA (vertical pod autoscaler)",
+        icon: "ti-arrows-vertical",
+        notes: [
+          { type: "note", html: "Adjusts <b>CPU/memory requests and limits</b> on pods. Not built-in — install separately." },
+          { type: "danger", html: "<b>Edge:</b> VPA in <b>Auto</b> mode evicts and recreates pods. Do NOT use HPA + VPA on CPU at the same time — they fight each other." },
+          { type: "tip", html: "<b>Recommendation</b> mode: VPA only advises, doesn't act. Good for right-sizing before enabling auto." }
+        ],
+        cmds: [
+          { label: "VPA yaml", code: `apiVersion: autoscaling.k8s.io/v1\nkind: VerticalPodAutoscaler\nmetadata:\n  name: web-vpa\nspec:\n  targetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: web\n  updatePolicy:\n    updateMode: "Off"  # Recommendation only\n  resourcePolicy:\n    containerPolicies:\n    - containerName: "*"\n      minAllowed:\n        cpu: 100m\n      maxAllowed:\n        cpu: "2"` }
+        ]
+      }
+    ]
+  },
+  {
+    cat: "Storage",
+    color: "#744210",
+    items: [
+      {
+        id: "pv",
+        label: "persistent volume (PV)",
+        icon: "ti-hdd",
+        notes: [
+          { type: "note", html: "<b>PV</b> is a cluster-scoped resource. Admin provisions it. <b>reclaim policy</b>: Retain / Delete / Recycle (deprecated)." },
+          { type: "warn", html: "<b>Edge:</b> PV is bound 1:1 with a PVC. A PV cannot be shared between PVCs simultaneously (unlike NFS shares, which allow multi-pod access through a single PV/PVC)." },
+          { type: "warn", html: "<b>Edge:</b> After a PVC is deleted, a PV with <b>Retain</b> policy becomes <b>Released</b> but is NOT available for new claims until manually cleaned." }
+        ],
+        cmds: [
+          { label: "inspect", code: `kubectl get pv\nkubectl describe pv my-pv` },
+          { label: "PV yaml", code: `apiVersion: v1\nkind: PersistentVolume\nmetadata:\n  name: my-pv\nspec:\n  capacity:\n    storage: 5Gi\n  accessModes:\n    - ReadWriteOnce\n  persistentVolumeReclaimPolicy: Retain\n  hostPath:\n    path: /data/pv` }
+        ]
+      },
+      {
+        id: "pvc",
+        label: "persistent volume claim (PVC)",
+        icon: "ti-file-invoice",
+        notes: [
+          { type: "note", html: "PVC is namespaced. It binds to a matching PV. If a matching PV doesn't exist, it remains <b>Pending</b> (or uses StorageClass for dynamic provisioning)." },
+          { type: "warn", html: "<b>Edge:</b> Access modes must match: <b>RWO</b> (single node), <b>ROX</b> (read-only many nodes), <b>RWX</b> (read-write many nodes — NFS, CephFS)." },
+          { type: "tip", html: "<b>Dynamic provisioning</b>: set <b>storageClassName</b> in PVC → StorageClass auto-provisions a PV via a provisioner." }
+        ],
+        cmds: [
+          { label: "PVC yaml + pod mount", code: `apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: my-pvc\nspec:\n  accessModes: [ReadWriteOnce]\n  resources:\n    requests:\n      storage: 1Gi\n  storageClassName: standard\n---\n# In pod spec:\nvolumes:\n  - name: data\n    persistentVolumeClaim:\n      claimName: my-pvc\ncontainers:\n  - volumeMounts:\n      - mountPath: /data\n        name: data` },
+          { label: "inspect", code: `kubectl get pvc\nkubectl get pvc my-pvc -o jsonpath='{.status.phase}'` }
+        ]
+      }
+    ]
+  },
+  {
+    cat: "Networking",
+    color: "#1A365D",
+    items: [
+      {
+        id: "services",
+        label: "services",
+        icon: "ti-network",
+        notes: [
+          { type: "note", html: "Service types: <b>ClusterIP</b> (default, internal), <b>NodePort</b> (30000-32767), <b>LoadBalancer</b> (cloud LB), <b>ExternalName</b> (CNAME alias)." },
+          { type: "warn", html: "<b>Edge:</b> Services use <b>label selectors</b> — a pod must have matching labels or it gets no traffic. Pods without selector → use Endpoints object manually." },
+          { type: "warn", html: "<b>Edge:</b> <b>kube-proxy</b> implements service VIPs via iptables/IPVS. iptables = random LB; IPVS = more algorithms (round-robin, least-conn)." },
+          { type: "tip", html: "DNS for a service: <b>my-svc.my-ns.svc.cluster.local</b>. Within same namespace just <b>my-svc</b> works." },
+          { type: "tip", html: "<b>Headless service</b> (clusterIP: None): no VIP, DNS returns pod IPs directly. Used by StatefulSets." }
+        ],
+        cmds: [
+          { label: "expose & inspect", code: `kubectl expose deployment web --port=80 --target-port=8080 --type=ClusterIP\nkubectl expose deployment web --port=80 --type=NodePort\nkubectl get svc\nkubectl describe svc web\nkubectl get endpoints web` },
+          { label: "service yaml", code: `apiVersion: v1\nkind: Service\nmetadata:\n  name: web\nspec:\n  selector:\n    app: web\n  ports:\n    - port: 80\n      targetPort: 8080\n      nodePort: 30080   # only for NodePort type\n  type: NodePort` }
+        ]
+      },
+      {
+        id: "ingress",
+        label: "ingress & ingressclass",
+        icon: "ti-world",
+        notes: [
+          { type: "note", html: "Ingress routes HTTP/HTTPS traffic to Services by hostname or path. Needs an <b>Ingress Controller</b> (nginx, traefik, etc.)." },
+          { type: "warn", html: "<b>Edge:</b> Ingress alone does nothing without an Ingress Controller running in the cluster." },
+          { type: "warn", html: "<b>Edge:</b> <b>IngressClass</b> determines which controller handles the Ingress. Use <b>ingressClassName</b> field (not the old annotation)." },
+          { type: "tip", html: "TLS termination: create a Secret of type <b>kubernetes.io/tls</b> and reference it in the Ingress tls section." }
+        ],
+        cmds: [
+          { label: "install nginx ingress controller (kind)", code: `kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml` },
+          { label: "ingress yaml", code: `apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: web-ingress\n  annotations:\n    nginx.ingress.kubernetes.io/rewrite-target: /\nspec:\n  ingressClassName: nginx\n  rules:\n  - host: web.example.com\n    http:\n      paths:\n      - path: /\n        pathType: Prefix\n        backend:\n          service:\n            name: web\n            port:\n              number: 80\n  tls:\n  - hosts: [web.example.com]\n    secretName: web-tls` }
+        ]
+      },
+      {
+        id: "netpol",
+        label: "network policy",
+        icon: "ti-shield-lock",
+        notes: [
+          { type: "note", html: "By default all pods can talk to all pods. NetworkPolicy restricts ingress/egress at the pod level." },
+          { type: "warn", html: "<b>Edge:</b> NetworkPolicy is only enforced by CNI plugins that support it (Calico, Cilium, Weave). Flannel alone does NOT enforce them." },
+          { type: "danger", html: "<b>Edge:</b> A pod with no matching NetworkPolicy has no restrictions. Once ANY policy selects a pod, all unmatched traffic is denied." }
+        ],
+        cmds: [
+          { label: "deny-all then allow yaml", code: `# Deny all ingress to pods in namespace\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: deny-all\nspec:\n  podSelector: {}   # matches all pods\n  policyTypes: [Ingress]\n---\n# Allow only from pods with label app=frontend\nspec:\n  podSelector:\n    matchLabels:\n      app: backend\n  ingress:\n  - from:\n    - podSelector:\n        matchLabels:\n          app: frontend` }
+        ]
+      }
+    ]
+  },
+  {
+    cat: "Config & Secrets",
+    color: "#276749",
+    items: [
+      {
+        id: "cm",
+        label: "configmap",
+        icon: "ti-file-text",
+        notes: [
+          { type: "note", html: "Store non-sensitive config as key-value pairs or files. Mountable as volumes or injected as env vars." },
+          { type: "warn", html: "<b>Edge:</b> ConfigMap env vars are NOT live-updated in running pods. Volume-mounted ConfigMaps update within ~1 min (kubelet sync)." }
+        ],
+        cmds: [
+          { label: "create & use", code: `kubectl create configmap app-config --from-literal=ENV=prod --from-file=config.properties\nkubectl get cm app-config -o yaml\n# In pod spec:\nenvFrom:\n  - configMapRef:\n      name: app-config\n# As volume:\nvolumes:\n  - name: cfg\n    configMap:\n      name: app-config` }
+        ]
+      },
+      {
+        id: "secrets",
+        label: "secrets",
+        icon: "ti-lock",
+        notes: [
+          { type: "note", html: "Stored as base64 (NOT encrypted by default). Enable <b>EncryptionConfiguration</b> at etcd level for real encryption." },
+          { type: "danger", html: "<b>Edge:</b> Secrets in env vars are visible via <b>kubectl describe pod</b>. Volume mounts are slightly safer (tmpfs in pod, not in process env)." },
+          { type: "tip", html: "Types: <b>Opaque</b> (generic), <b>kubernetes.io/tls</b>, <b>kubernetes.io/dockerconfigjson</b>, <b>kubernetes.io/service-account-token</b>." }
+        ],
+        cmds: [
+          { label: "create", code: `kubectl create secret generic db-secret \\\n  --from-literal=password=supersecret\nkubectl create secret tls my-tls \\\n  --cert=tls.crt --key=tls.key\nkubectl get secret db-secret -o jsonpath='{.data.password}' | base64 -d` }
+        ]
+      }
+    ]
+  },
+  {
+    cat: "Scheduling",
+    color: "#553C9A",
+    items: [
+      {
+        id: "taints",
+        label: "taints & tolerations",
+        icon: "ti-barrier-block",
+        notes: [
+          { type: "note", html: "<b>Taints</b> on nodes repel pods. <b>Tolerations</b> on pods let them tolerate a taint. Effect: <b>NoSchedule</b>, <b>PreferNoSchedule</b>, <b>NoExecute</b>." },
+          { type: "warn", html: "<b>Edge:</b> <b>NoExecute</b> evicts already-running pods that don't have a matching toleration. The other effects only affect scheduling." },
+          { type: "tip", html: "Control-plane nodes have taint <b>node-role.kubernetes.io/control-plane:NoSchedule</b> — that's why workloads don't land there by default." }
+        ],
+        cmds: [
+          { label: "taints", code: `kubectl taint nodes node1 key=value:NoSchedule\nkubectl taint nodes node1 key=value:NoSchedule-   # remove taint\nkubectl describe node node1 | grep Taint` },
+          { label: "toleration yaml", code: `tolerations:\n- key: "key"\n  operator: "Equal"\n  value: "value"\n  effect: "NoSchedule"` }
+        ]
+      },
+      {
+        id: "affinity",
+        label: "affinity & anti-affinity",
+        icon: "ti-arrows-diff",
+        notes: [
+          { type: "note", html: "<b>nodeAffinity</b>: schedule on specific nodes by labels. <b>podAffinity/AntiAffinity</b>: co-locate or spread pods." },
+          { type: "warn", html: "<b>Edge:</b> <b>requiredDuringScheduling</b> = hard rule (pod stays Pending if no match). <b>preferredDuringScheduling</b> = soft rule (scheduler tries, but won't block)." },
+          { type: "tip", html: "Anti-affinity with <b>topologyKey: kubernetes.io/hostname</b> spreads pods across nodes for HA." }
+        ],
+        cmds: [
+          { label: "pod anti-affinity yaml", code: `affinity:\n  podAntiAffinity:\n    requiredDuringSchedulingIgnoredDuringExecution:\n    - labelSelector:\n        matchExpressions:\n        - key: app\n          operator: In\n          values: [web]\n      topologyKey: kubernetes.io/hostname` }
+        ]
+      },
+      {
+        id: "resources",
+        label: "resource requests & limits",
+        icon: "ti-gauge",
+        notes: [
+          { type: "note", html: "<b>Requests</b>: what the scheduler uses for placement. <b>Limits</b>: enforced at runtime. CPU is throttled; Memory OOM-kills the pod." },
+          { type: "danger", html: "<b>Edge:</b> QoS classes: <b>Guaranteed</b> (req=limit), <b>Burstable</b> (req < limit), <b>BestEffort</b> (no req/limit). BestEffort pods are killed first under pressure." },
+          { type: "warn", html: "<b>Edge:</b> CPU limit causes throttling even when node has free CPU. Consider setting limits only on memory to avoid unnecessary throttle." }
+        ],
+        cmds: [
+          { label: "resource yaml", code: `resources:\n  requests:\n    cpu: "250m"\n    memory: "128Mi"\n  limits:\n    cpu: "500m"\n    memory: "256Mi"` },
+          { label: "inspect usage", code: `kubectl top nodes\nkubectl top pods --containers   # per-container usage` }
+        ]
+      }
+    ]
+  },
+  {
+    cat: "RBAC & Security",
+    color: "#C53030",
+    items: [
+      {
+        id: "rbac",
+        label: "RBAC",
+        icon: "ti-key",
+        notes: [
+          { type: "note", html: "<b>Role/RoleBinding</b>: namespaced. <b>ClusterRole/ClusterRoleBinding</b>: cluster-wide. A ClusterRole can be bound in a namespace via RoleBinding." },
+          { type: "warn", html: "<b>Edge:</b> Permissions are additive — there is no deny. A subject with multiple bindings gets the union of all permissions." },
+          { type: "tip", html: "ServiceAccount is the identity for pods. Bind roles to service accounts for least-privilege pod access to the API." }
+        ],
+        cmds: [
+          { label: "inspect & create", code: `kubectl get roles,rolebindings -n mynamespace\kubectl auth can-i get pods --as=jane -n prod    # impersonate\nkubectl auth can-i '*' '*'                        # am I admin?\nkubectl create serviceaccount my-sa -n prod\nkubectl create role pod-reader \\\n  --verb=get,list,watch --resource=pods\nkubectl create rolebinding pod-reader-binding \\\n  --role=pod-reader --serviceaccount=prod:my-sa` }
+        ]
+      },
+      {
+        id: "psa",
+        label: "pod security admission",
+        icon: "ti-shield",
+        notes: [
+          { type: "note", html: "Replaced PodSecurityPolicy (deprecated in 1.21, removed in 1.25). Three profiles: <b>privileged</b>, <b>baseline</b>, <b>restricted</b>." },
+          { type: "warn", html: "<b>Edge:</b> Applied via namespace labels. Modes: <b>enforce</b> (reject), <b>audit</b> (log), <b>warn</b> (user warning)." }
+        ],
+        cmds: [
+          { label: "namespace label", code: `kubectl label namespace prod \\\n  pod-security.kubernetes.io/enforce=restricted \\\n  pod-security.kubernetes.io/warn=restricted` }
+        ]
+      }
+    ]
+  },
+  {
+    cat: "Observability",
+    color: "#2B6CB0",
+    items: [
+      {
+        id: "probes",
+        label: "probes",
+        icon: "ti-heartbeat",
+        notes: [
+          { type: "note", html: "<b>livenessProbe</b>: restarts container if unhealthy. <b>readinessProbe</b>: removes pod from service endpoints. <b>startupProbe</b>: delays liveness during slow startup." },
+          { type: "danger", html: "<b>Edge:</b> A bad liveness probe causes restart loops. Start with readiness only; add liveness carefully." },
+          { type: "tip", html: "Probe types: <b>httpGet</b>, <b>tcpSocket</b>, <b>exec</b>. Use <b>initialDelaySeconds</b> to give app time to start." }
+        ],
+        cmds: [
+          { label: "probe yaml", code: `livenessProbe:\n  httpGet:\n    path: /healthz\n    port: 8080\n  initialDelaySeconds: 10\n  periodSeconds: 5\n  failureThreshold: 3\nreadinessProbe:\n  httpGet:\n    path: /ready\n    port: 8080\n  initialDelaySeconds: 5\n  periodSeconds: 5\nstartupProbe:\n  httpGet:\n    path: /healthz\n    port: 8080\n  failureThreshold: 30   # 30 * periodSeconds = 5min max startup\n  periodSeconds: 10` }
+        ]
+      },
+      {
+        id: "debug",
+        label: "debugging & events",
+        icon: "ti-bug",
+        notes: [
+          { type: "tip", html: "Events are the first place to look. They expire after ~1h by default." },
+          { type: "tip", html: "<b>kubectl debug</b> creates an ephemeral debug container in a running pod (K8s 1.23+, requires EphemeralContainers feature gate)." }
+        ],
+        cmds: [
+          { label: "essential debug commands", code: `kubectl get events -n mynamespace --sort-by='.lastTimestamp'\nkubectl describe pod <name>             # shows events + state\nkubectl debug -it <pod> --image=busybox --target=<container>\nkubectl cp pod:/path/to/file ./local    # copy files out\nkubectl port-forward svc/web 8080:80   # forward locally\nkubectl get pod <name> -o jsonpath='{.status.containerStatuses[*].restartCount}'` }
+        ]
+      }
+    ]
+  }
+];
+
+const catColors = {};
+DATA.forEach(s => catColors[s.cat] = s.color);
+
+function renderNote(n) {
+  return `<div class="note ${n.type === 'warn' ? 'warn' : n.type === 'danger' ? 'danger' : n.type === 'tip' ? 'tip' : n.type === 'good' ? 'good' : ''}">${n.html}</div>`;
+}
+function renderCmd(c) {
+  return `<div class="cmd-block"><div class="cmd-label">${c.label}</div><pre>${c.code}</pre></div>`;
+}
+
+function renderCard(item, cat) {
+  const color = catColors[cat] || '#326CE5';
+  const catStyle = `background:${color}18; color:${color}; border: 0.5px solid ${color}40;`;
+  return `
+    <div class="card" id="card-${item.id}" data-cat="${cat}">
+      <div class="card-head" onclick="toggleCard('${item.id}')">
+        <i class="ti ${item.icon} card-icon" aria-hidden="true" style="color:${color}"></i>
+        <span class="card-label">${item.label}</span>
+        <span class="card-cat" style="${catStyle}">${cat}</span>
+        <i class="ti ti-chevron-down chevron" aria-hidden="true"></i>
+      </div>
+      <div class="card-body">
+        ${item.notes.map(renderNote).join('')}
+        <div class="divider"></div>
+        ${item.cmds.map(renderCmd).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderAll(filterCat, query) {
+  const container = document.getElementById('sections');
+  let html = '';
+  let total = 0;
+  DATA.forEach(sec => {
+    if (filterCat && filterCat !== 'All' && sec.cat !== filterCat) return;
+    const items = sec.items.filter(item => {
+      if (!query) return true;
+      const q = query.toLowerCase();
+      return item.label.toLowerCase().includes(q) ||
+        item.cmds.some(c => c.code.toLowerCase().includes(q) || c.label.toLowerCase().includes(q)) ||
+        item.notes.some(n => n.html.toLowerCase().includes(q));
+    });
+    if (!items.length) return;
+    total += items.length;
+    html += `<div class="section">
+      <div class="sec-title">${sec.cat}</div>
+      <div class="cards">${items.map(i => renderCard(i, sec.cat)).join('')}</div>
+    </div>`;
+  });
+  container.innerHTML = html || `<p style="color:var(--color-text-tertiary);font-size:13px;padding:1rem">No results found.</p>`;
+  restoreOpen();
+}
+
+let openCards = new Set();
+function toggleCard(id) {
+  const el = document.getElementById('card-' + id);
+  if (el.classList.contains('open')) { el.classList.remove('open'); openCards.delete(id); }
+  else { el.classList.add('open'); openCards.add(id); }
+}
+function restoreOpen() {
+  openCards.forEach(id => {
+    const el = document.getElementById('card-' + id);
+    if (el) el.classList.add('open');
+  });
+}
+
+const cats = ['All', ...DATA.map(s => s.cat)];
+const filterRow = document.getElementById('filters');
+let activeCat = 'All';
+cats.forEach(c => {
+  const btn = document.createElement('span');
+  btn.className = 'tag' + (c === 'All' ? ' active' : '');
+  btn.textContent = c;
+  btn.onclick = () => {
+    activeCat = c;
+    document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderAll(activeCat, document.getElementById('search').value);
+  };
+  filterRow.appendChild(btn);
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  renderAll(activeCat, e.target.value);
+});
+
+renderAll('All', '');
+</script>
